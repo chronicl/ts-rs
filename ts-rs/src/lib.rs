@@ -307,6 +307,8 @@ pub struct Dependency {
     /// Path to where the type would be exported. By default a filename is derived from the types
     /// name, which can be customized with `#[ts(export_to = "..")]`.
     pub exported_to: &'static str,
+    /// Declaration of this type, e.g. interface User { user_id: number, ... }.
+    pub declaration: String,
 }
 
 impl Dependency {
@@ -319,6 +321,7 @@ impl Dependency {
             type_id: TypeId::of::<T>(),
             ts_name: T::name(),
             exported_to,
+            declaration: T::decl(),
         })
     }
 }
