@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
-use syn::Type;
+use syn::{Ident, Type};
 
 #[derive(Default)]
 pub struct Dependencies(Vec<TokenStream>);
@@ -29,6 +29,12 @@ impl Dependencies {
     pub fn append(&mut self, other: Dependencies) {
         self.0.push(quote! {
             dependencies.append(&mut #other);
+        })
+    }
+
+    pub fn append_generic(&mut self, generic: &Ident) {
+        self.0.push(quote! {
+            dependencies.append(&mut <#generic as ts_rs::TS>::dependencies());
         })
     }
 }

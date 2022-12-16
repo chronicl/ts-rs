@@ -67,7 +67,7 @@ impl DerivedTS {
             inline,
             decl,
             inline_flattened,
-            dependencies,
+            mut dependencies,
             ..
         } = self;
         let inline_flattened = inline_flattened
@@ -98,6 +98,17 @@ impl DerivedTS {
         } else {
             quote!()
         };
+
+        // Currently specified generics are sometimes added to the dependencies,
+        // sometimes not, depending on the rust type. This is inconsistent and
+        // should be fixed. However as a workaround, we add all generics as
+        // dependencies here. This leads to duplicate dependencies (which can
+        // happen even without this), so be careful.
+        for param in &generics.params {
+            if let GenericParam::Type(TypeParam { ident, .. }) = param {
+                dependencies.append_generic(ident);
+            }
+        }
 
         let impl_start = generate_impl(&rust_ty, &generics);
         quote! {
