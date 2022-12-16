@@ -455,6 +455,45 @@ impl<T: TS> TS for Option<T> {
     }
 }
 
+impl<T: TS, E: TS> TS for Result<T, E> {
+    fn name() -> String {
+        "Result".to_owned()
+    }
+
+    fn generics() -> Option<String> {
+        Some(format!(
+            "{}, {}",
+            T::name_with_generics(),
+            E::name_with_generics()
+        ))
+    }
+
+    fn name_with_type_args(args: Vec<String>) -> String {
+        assert_eq!(
+            args.len(),
+            2,
+            "called Result::name_with_type_args with {} args",
+            args.len()
+        );
+        format!("Result<{}, {}>", args[0], args[1])
+    }
+
+    fn inline() -> String {
+        format!("Result<{}, {}>", T::inline(), E::inline())
+    }
+
+    fn dependencies() -> Vec<Dependency> {
+        [Dependency::from_ty::<T>(), Dependency::from_ty::<E>()]
+            .into_iter()
+            .flatten()
+            .collect()
+    }
+
+    fn transparent() -> bool {
+        true
+    }
+}
+
 impl<T: TS> TS for Vec<T> {
     fn name() -> String {
         "Array".to_owned()
