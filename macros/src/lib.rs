@@ -82,21 +82,17 @@ impl DerivedTS {
 
         // generating function body of `fn generics() -> Option<String>`
         let fn_generics = if !generics.params.is_empty() {
-            let mut format_string = String::new();
-            let mut format_values = Vec::new();
-            for param in generics.params.iter() {
+            let format_values = generics.params.iter().flat_map(|param| {
                 if let GenericParam::Type(TypeParam { ident, .. }) = param {
-                    format_string.push_str("{}, ");
-                    format_values.push(quote!(#ident :: name_with_generics()));
+                    Some(quote!(#ident::name_with_generics()))
+                } else {
+                    None
                 }
-            }
-            // removing trailing ", "
-            format_string.pop();
-            format_string.pop();
+            });
 
             quote! {
                fn generics() -> Option<String> {
-                   Some(format!(#format_string, #(#format_values),*))
+                   Some(format!("{}", vec![#(#format_values),*].join(", ")))
                }
             }
         } else {

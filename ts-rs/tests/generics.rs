@@ -208,11 +208,11 @@ fn name_with_generics() {
     struct A<T: ToString = i32> {
         t: T,
     }
-    assert_eq!(A::<i32>::name_with_generics(), "A<number>");
+    assert_eq!(A::<i32>::inline(), "A<number>");
 
     #[derive(TS)]
     struct B<T, U>(T, U);
-    assert_eq!(B::<A, String>::name_with_generics(), "B<A<number>, string>");
+    assert_eq!(B::<A, String>::inline(), "B<A<number>, string>");
 }
 
 #[test]

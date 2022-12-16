@@ -364,6 +364,9 @@ macro_rules! impl_tuples {
             fn name() -> String {
                 format!("[{}]", vec![$($i::name()),*].join(", "))
             }
+            fn name_with_generics() -> String {
+                format!("[{}]", vec![$($i::name_with_generics()),*].join(", "))
+            }
             fn inline() -> String {
                 format!("[{}]", vec![ $($i::inline()),* ].join(", "))
             }
@@ -388,6 +391,7 @@ macro_rules! impl_wrapper {
     ($($t:tt)*) => {
         $($t)* {
             fn name() -> String { T::name() }
+            fn name_with_generics() -> String { T::name_with_generics() }
             fn name_with_type_args(mut args: Vec<String>) -> String {
                 assert_eq!(args.len(), 1);
                 args.remove(0)
@@ -405,6 +409,7 @@ macro_rules! impl_shadow {
     (as $s:ty: $($impl:tt)*) => {
         $($impl)* {
             fn name() -> String { <$s>::name() }
+            fn name_with_generics() -> String { <$s>::name_with_generics() }
             fn name_with_type_args(args: Vec<String>) -> String { <$s>::name_with_type_args(args) }
             fn inline() -> String { <$s>::inline() }
             fn inline_flattened() -> String { <$s>::inline_flattened() }
@@ -417,6 +422,14 @@ macro_rules! impl_shadow {
 impl<T: TS> TS for Option<T> {
     fn name() -> String {
         unreachable!();
+    }
+
+    fn generics() -> Option<String> {
+        Some(T::name_with_generics())
+    }
+
+    fn name_with_generics() -> String {
+        format!("{} | null", Self::generics().unwrap())
     }
 
     fn name_with_type_args(args: Vec<String>) -> String {
