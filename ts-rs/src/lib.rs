@@ -247,6 +247,22 @@ pub trait TS: 'static {
     /// Name of this type in TypeScript.
     fn name() -> String;
 
+    /// Generics of this specific instance of the type in Typescript.
+    /// For example `Result<u32, String>` would return `Some("number, string")`.
+    fn generics() -> Option<String> {
+        None
+    }
+
+    /// Name of this type in TypeScript, with generics.
+    /// For example `Result<u32, String>` would return `"Result<number, string>"`.
+    fn name_with_generics() -> String {
+        if let Some(generics) = Self::generics() {
+            format!("{}<{}>", Self::name(), generics)
+        } else {
+            Self::name()
+        }
+    }
+
     /// Name of this type in TypeScript, with type arguments.
     fn name_with_type_args(args: Vec<String>) -> String {
         format!("{}<{}>", Self::name(), args.join(", "))
@@ -431,6 +447,10 @@ impl<T: TS> TS for Vec<T> {
         "Array".to_owned()
     }
 
+    fn generics() -> Option<String> {
+        Some(T::name_with_generics())
+    }
+
     fn name_with_type_args(args: Vec<String>) -> String {
         assert_eq!(
             args.len(),
@@ -457,6 +477,14 @@ impl<T: TS> TS for Vec<T> {
 impl<K: TS, V: TS> TS for HashMap<K, V> {
     fn name() -> String {
         "Record".to_owned()
+    }
+
+    fn generics() -> Option<String> {
+        Some(format!(
+            "{}, {}",
+            K::name_with_generics(),
+            V::name_with_generics()
+        ))
     }
 
     fn name_with_type_args(args: Vec<String>) -> String {
@@ -490,6 +518,10 @@ impl<I: TS> TS for Range<I> {
         panic!("called Range::name - Did you use a type alias?")
     }
 
+    fn generics() -> Option<String> {
+        Some(I::name_with_generics())
+    }
+
     fn name_with_type_args(args: Vec<String>) -> String {
         assert_eq!(
             args.len(),
@@ -512,6 +544,10 @@ impl<I: TS> TS for Range<I> {
 impl<I: TS> TS for RangeInclusive<I> {
     fn name() -> String {
         panic!("called RangeInclusive::name - Did you use a type alias?")
+    }
+
+    fn generics() -> Option<String> {
+        Some(I::name_with_generics())
     }
 
     fn name_with_type_args(args: Vec<String>) -> String {

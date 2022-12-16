@@ -80,11 +80,35 @@ impl DerivedTS {
             })
             .unwrap_or_else(TokenStream::new);
 
+        // generating function body of `fn generics() -> Option<String>`
+        let fn_generics = if !generics.params.is_empty() {
+            let mut format_string = String::new();
+            let mut format_values = Vec::new();
+            for param in generics.params.iter() {
+                if let GenericParam::Type(TypeParam { ident, .. }) = param {
+                    format_string.push_str("{}, ");
+                    format_values.push(quote!(#ident :: name_with_generics()));
+                }
+            }
+            // removing trailing ", "
+            format_string.pop();
+            format_string.pop();
+
+            quote! {
+               fn generics() -> Option<String> {
+                   Some(format!(#format_string, #(#format_values),*))
+               }
+            }
+        } else {
+            quote!()
+        };
+
         let impl_start = generate_impl(&rust_ty, &generics);
         quote! {
             #impl_start {
                 const EXPORT_TO: Option<&'static str> = Some(#export_to);
 
+                #fn_generics
                 fn decl() -> String {
                     #decl
                 }

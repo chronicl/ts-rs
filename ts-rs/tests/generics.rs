@@ -203,6 +203,19 @@ fn default() {
 }
 
 #[test]
+fn name_with_generics() {
+    #[derive(TS)]
+    struct A<T: ToString = i32> {
+        t: T,
+    }
+    assert_eq!(A::<i32>::name_with_generics(), "A<number>");
+
+    #[derive(TS)]
+    struct B<T, U>(T, U);
+    assert_eq!(B::<A, String>::name_with_generics(), "B<A<number>, string>");
+}
+
+#[test]
 fn trait_bounds() {
     #[derive(TS)]
     struct A<T: ToString = i32> {
