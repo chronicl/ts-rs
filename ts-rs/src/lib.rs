@@ -151,6 +151,8 @@ pub use crate::export::ExportError;
 #[cfg(feature = "chrono-impl")]
 mod chrono;
 mod export;
+#[cfg(feature = "poem")]
+mod poem;
 
 /// A type which can be represented in TypeScript.  
 /// Most of the time, you'd want to derive this trait instead of implementing it manually.  
@@ -403,6 +405,7 @@ macro_rules! impl_wrapper {
         }
     };
 }
+pub(crate) use impl_wrapper;
 
 // implement TS for the $shadow, deferring to the impl $s
 macro_rules! impl_shadow {
