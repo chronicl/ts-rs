@@ -224,7 +224,35 @@ fn name_with_generics() {
 }
 
 #[test]
-fn test_dependencies_generics() {}
+fn test_dependencies_generics() {
+    #[derive(TS)]
+    struct D {
+        d: B,
+    }
+
+    #[derive(TS)]
+    struct B {
+        b: C,
+    }
+
+    #[derive(TS)]
+    struct C {
+        c: u32,
+    }
+
+    #[derive(TS)]
+    struct A<T = C> {
+        t: T,
+    }
+    // A depends on C because it's generic is C by default
+    assert_eq!(A::<i32>::dependencies().len(), 1);
+    // A<B> depends on C (see above) and on B because it's
+    // generic is B. B also depends on C, but we don't have
+    // duplicate dependencies.
+    assert_eq!(A::<B>::dependencies().len(), 2);
+    // Depends on C, B and D
+    assert_eq!(A::<D>::dependencies().len(), 3);
+}
 
 #[test]
 fn trait_bounds() {
