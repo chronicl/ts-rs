@@ -380,7 +380,7 @@ pub struct Dependency {
     /// Name of the type in TypeScript
     pub ts_name: String,
     /// Type declaration of this type, e.g. interface User { user_id: number, ... }.
-    pub ts_type: String,
+    pub ts_declaration: String,
     /// Path to where the type would be exported. By default a filename is derived from the types
     /// name, which can be customized with `#[ts(export_to = "..")]`.
     pub exported_to: Option<&'static str>,
@@ -394,7 +394,7 @@ impl Dependency {
         Some(Dependency {
             id: T::id(),
             ts_name: T::name(),
-            ts_type: T::decl()?,
+            ts_declaration: T::decl()?,
             exported_to: T::EXPORT_TO,
         })
     }
