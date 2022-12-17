@@ -104,30 +104,37 @@ impl DerivedTS {
         // should be fixed. However as a workaround, we add all generics as
         // dependencies here. This leads to duplicate dependencies (which can
         // happen even without this), so be careful.
+        // Todo: Fix this.
         for param in &generics.params {
             if let GenericParam::Type(TypeParam { ident, .. }) = param {
-                dependencies.append_generic(ident);
+                dependencies.add_generic(ident);
             }
         }
 
+        let id = rand::random::<u64>();
+        let dependencies = dependencies.0;
         let impl_start = generate_impl(&rust_ty, &generics);
         quote! {
             #impl_start {
                 const EXPORT_TO: Option<&'static str> = Some(#export_to);
 
-                #fn_generics
-                fn decl() -> String {
-                    #decl
+                fn id() -> ts_rs::Id {
+                    #id
+                }
+
+                fn decl() -> Option<String> {
+                    Some(#decl)
                 }
                 fn name() -> String {
                     #name.to_owned()
                 }
+                #fn_generics
                 fn inline() -> String {
                     #inline
                 }
                 #inline_flattened
-                fn dependencies() -> Vec<ts_rs::Dependency> {
-                    #dependencies
+                fn dependencies_inner(dependencies: &mut ts_rs::Dependencies) {
+                    #(dependencies.add::<#dependencies>();)*
                 }
                 fn transparent() -> bool {
                     false
@@ -138,6 +145,8 @@ impl DerivedTS {
         }
     }
 }
+
+// Todo: use crate_name instead of hardcoding the crate name
 
 // generate start of the `impl TS for #ty` block, up to (excluding) the open brace
 fn generate_impl(ty: &Ident, generics: &Generics) -> TokenStream {

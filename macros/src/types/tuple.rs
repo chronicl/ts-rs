@@ -90,10 +90,10 @@ fn format_field(
     match (inline, &type_override) {
         (_, Some(_)) => (),
         (false, _) => {
-            dependencies.push_or_append_from(ty);
+            dependencies.add_type(ty);
         }
         (true, _) => {
-            dependencies.append_from(ty);
+            dependencies.add_type(ty);
         }
     };
 

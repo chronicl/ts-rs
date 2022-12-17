@@ -9,7 +9,7 @@ fn list() {
     }
 
     assert_eq!(
-        List::decl(),
-        "interface List { data: Array<number> | null, }"
+        List::decl().unwrap(),
+        "interface List { data: Option<Array<number>>, }"
     );
 }

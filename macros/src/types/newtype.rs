@@ -42,8 +42,8 @@ pub(crate) fn newtype(
     let mut dependencies = Dependencies::default();
     match (inline, &type_override) {
         (_, Some(_)) => (),
-        (true, _) => dependencies.append_from(inner_ty),
-        (false, _) => dependencies.push_or_append_from(inner_ty),
+        (true, _) => dependencies.add_type(inner_ty),
+        (false, _) => dependencies.add_type(inner_ty),
     };
     let inline_def = match &type_override {
         Some(o) => quote!(#o.to_owned()),

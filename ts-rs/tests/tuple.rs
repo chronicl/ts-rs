@@ -9,10 +9,9 @@ fn test_tuple() {
 }
 
 #[test]
-#[should_panic]
 fn test_decl() {
     type Tuple = (String, i32, (i32, i32));
-    let _ = Tuple::decl();
+    assert!(Tuple::decl().is_none());
 }
 
 #[test]
@@ -20,7 +19,7 @@ fn test_newtype() {
     #[derive(TS)]
     struct NewType(String);
 
-    assert_eq!("type NewType = string;", NewType::decl());
+    assert_eq!("type NewType = string;", NewType::decl().unwrap());
 }
 
 #[test]
@@ -29,6 +28,6 @@ fn test_tuple_newtype() {
     struct TupleNewType(String, i32, (i32, i32));
     assert_eq!(
         "type TupleNewType = [string, number, [number, number]];",
-        TupleNewType::decl()
+        TupleNewType::decl().unwrap()
     )
 }

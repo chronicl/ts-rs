@@ -11,7 +11,7 @@ struct Unit3();
 
 #[test]
 fn test() {
-    assert_eq!("type Unit = null;", Unit::decl());
-    assert_eq!("type Unit2 = null;", Unit2::decl());
-    assert_eq!("type Unit3 = null;", Unit3::decl());
+    assert_eq!("type Unit = null;", Unit::decl().unwrap());
+    assert_eq!("type Unit2 = null;", Unit2::decl().unwrap());
+    assert_eq!("type Unit3 = null;", Unit3::decl().unwrap());
 }

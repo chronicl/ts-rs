@@ -134,7 +134,7 @@
 
 use std::{
     any::TypeId,
-    collections::{BTreeMap, BTreeSet, HashMap, HashSet},
+    collections::{hash_map::Entry, BTreeMap, BTreeSet, HashMap, HashSet},
     net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6},
     num::{
         NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroIsize, NonZeroU128,
@@ -240,10 +240,14 @@ mod poem;
 pub trait TS: 'static {
     const EXPORT_TO: Option<&'static str> = None;
 
+    fn id() -> Id {
+        0
+    }
+
     /// Declaration of this type, e.g. `interface User { user_id: number, ... }`.
     /// This function will panic if the type has no declaration.
-    fn decl() -> String {
-        panic!("{} cannot be declared", Self::name());
+    fn decl() -> Option<String> {
+        None
     }
 
     /// Name of this type in TypeScript.
@@ -282,9 +286,17 @@ pub trait TS: 'static {
         panic!("{} cannot be flattened", Self::name())
     }
 
-    /// Information about types this type depends on.
+    /// Information about types this type depends on and itself.
+    /// This recursively includes dependencies of dependencies.
     /// This is used for resolving imports when exporting to a file.
-    fn dependencies() -> Vec<Dependency>;
+    fn dependencies() -> Dependencies {
+        let mut dependencies = Dependencies::new();
+        Self::dependencies_inner(&mut dependencies);
+        dependencies
+    }
+
+    #[allow(unused_variables)]
+    fn dependencies_inner(dependencies: &mut Dependencies) {}
 
     /// `true` if this is a transparent type, e.g tuples or a list.  
     /// This is used for resolving imports when using the `export!` macro.
@@ -314,32 +326,72 @@ pub trait TS: 'static {
     }
 }
 
+pub type Id = u64;
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct Dependencies(HashMap<Id, Dependency>);
+
+impl Dependencies {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Add a type and all of it's dependencies (recursive) to the list of dependencies.
+    /// Dependencies that are already in the list are ignored and it is assumed that
+    /// all sub-dependencies of the dependency are already in the list.
+    pub fn add<T: TS>(&mut self) {
+        if let Entry::Vacant(e) = self.0.entry(T::id()) {
+            if let Some(dep) = Dependency::from_ty::<T>() {
+                e.insert(dep);
+                T::dependencies_inner(self);
+            }
+        }
+    }
+
+    pub fn extend<T: TS>(&mut self, other: Dependencies) {
+        self.0.extend(other.0.into_iter());
+    }
+}
+
+impl std::ops::Deref for Dependencies {
+    type Target = HashMap<u64, Dependency>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for Dependencies {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 /// A typescript type which is depended upon by other types.
 /// This information is required for generating the correct import statements.
-#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Dependency {
     /// Type ID of the rust type
-    pub type_id: TypeId,
+    pub id: Id,
     /// Name of the type in TypeScript
     pub ts_name: String,
+    /// Type declaration of this type, e.g. interface User { user_id: number, ... }.
+    pub ts_type: String,
     /// Path to where the type would be exported. By default a filename is derived from the types
     /// name, which can be customized with `#[ts(export_to = "..")]`.
-    pub exported_to: &'static str,
-    /// Declaration of this type, e.g. interface User { user_id: number, ... }.
-    pub declaration: String,
+    pub exported_to: Option<&'static str>,
 }
 
 impl Dependency {
     /// Constructs a [`Dependency`] from the given type `T`.
-    /// If `T` is not exportable (meaning `T::EXPORT_TO` is `None`), this function will return
+    /// If `T` is not exportable (meaning `T::EXPORT_TO` is `None` or the type already exists in typescript), this function will return
     /// `None`
     pub fn from_ty<T: TS>() -> Option<Self> {
-        let exported_to = T::EXPORT_TO?;
         Some(Dependency {
-            type_id: TypeId::of::<T>(),
+            id: T::id(),
             ts_name: T::name(),
-            exported_to,
-            declaration: T::decl(),
+            ts_type: T::decl()?,
+            exported_to: T::EXPORT_TO,
         })
     }
 }
@@ -354,14 +406,13 @@ macro_rules! impl_primitives {
                 $l.to_owned()
             }
             fn inline() -> String { $l.to_owned() }
-            fn dependencies() -> Vec<Dependency> { vec![] }
             fn transparent() -> bool { false }
         }
     )*)* };
 }
 // generate impls for tuples
 macro_rules! impl_tuples {
-    ( impl $($i:ident),* ) => {
+    (impl $($i:ident),* ) => {
         impl<$($i: TS),*> TS for ($($i,)*) {
             fn name() -> String {
                 format!("[{}]", vec![$($i::name()),*].join(", "))
@@ -372,16 +423,13 @@ macro_rules! impl_tuples {
             fn inline() -> String {
                 format!("[{}]", vec![ $($i::inline()),* ].join(", "))
             }
-            fn dependencies() -> Vec<Dependency> {
-                [$( Dependency::from_ty::<$i>() ),*]
-                .into_iter()
-                .flatten()
-                .collect()
+            fn dependencies_inner(dependencies: &mut $crate::Dependencies) {
+                $(dependencies.add::<$i>());*
             }
             fn transparent() -> bool { true }
         }
     };
-    ( $i2:ident $(, $i:ident)* ) => {
+    ($i2:ident $(, $i:ident)* ) => {
         impl_tuples!(impl $i2 $(, $i)* );
         impl_tuples!($($i),*);
     };
@@ -392,6 +440,7 @@ macro_rules! impl_tuples {
 macro_rules! impl_wrapper {
     ($($t:tt)*) => {
         $($t)* {
+            fn id() -> $crate::Id { T::id() }
             fn name() -> String { T::name() }
             fn name_with_generics() -> String { T::name_with_generics() }
             fn name_with_type_args(mut args: Vec<String>) -> String {
@@ -400,7 +449,9 @@ macro_rules! impl_wrapper {
             }
             fn inline() -> String { T::inline() }
             fn inline_flattened() -> String { T::inline_flattened() }
-            fn dependencies() -> Vec<Dependency> { T::dependencies() }
+            fn dependencies_inner(dependencies: &mut $crate::Dependencies) {
+                dependencies.add::<T>();
+            }
             fn transparent() -> bool { T::transparent() }
         }
     };
@@ -411,28 +462,35 @@ pub(crate) use impl_wrapper;
 macro_rules! impl_shadow {
     (as $s:ty: $($impl:tt)*) => {
         $($impl)* {
+            fn id() -> $crate::Id { <$s>::id() }
             fn name() -> String { <$s>::name() }
             fn name_with_generics() -> String { <$s>::name_with_generics() }
             fn name_with_type_args(args: Vec<String>) -> String { <$s>::name_with_type_args(args) }
             fn inline() -> String { <$s>::inline() }
             fn inline_flattened() -> String { <$s>::inline_flattened() }
-            fn dependencies() -> Vec<$crate::Dependency> { <$s>::dependencies() }
+            fn dependencies_inner(dependencies: &mut $crate::Dependencies) {
+                dependencies.add::<$s>();
+            }
             fn transparent() -> bool { <$s>::transparent() }
         }
     };
 }
 
 impl<T: TS> TS for Option<T> {
+    fn id() -> Id {
+        4048293303
+    }
+
+    fn decl() -> Option<String> {
+        Some("type Option<T> = T | null;".into())
+    }
+
     fn name() -> String {
-        unreachable!();
+        "Option".into()
     }
 
     fn generics() -> Option<String> {
         Some(T::name_with_generics())
-    }
-
-    fn name_with_generics() -> String {
-        format!("{} | null", Self::generics().unwrap())
     }
 
     fn name_with_type_args(args: Vec<String>) -> String {
@@ -442,15 +500,15 @@ impl<T: TS> TS for Option<T> {
             "called Option::name_with_type_args with {} args",
             args.len()
         );
-        format!("{} | null", args[0])
+        format!("Option<{}>", args[0])
     }
 
     fn inline() -> String {
         format!("{} | null", T::inline())
     }
 
-    fn dependencies() -> Vec<Dependency> {
-        [Dependency::from_ty::<T>()].into_iter().flatten().collect()
+    fn dependencies_inner(dependencies: &mut Dependencies) {
+        dependencies.add::<T>();
     }
 
     fn transparent() -> bool {
@@ -459,6 +517,10 @@ impl<T: TS> TS for Option<T> {
 }
 
 impl<T: TS, E: TS> TS for Result<T, E> {
+    fn id() -> Id {
+        4048293304
+    }
+
     fn name() -> String {
         "Result".to_owned()
     }
@@ -485,11 +547,9 @@ impl<T: TS, E: TS> TS for Result<T, E> {
         format!("Result<{}, {}>", T::inline(), E::inline())
     }
 
-    fn dependencies() -> Vec<Dependency> {
-        [Dependency::from_ty::<T>(), Dependency::from_ty::<E>()]
-            .into_iter()
-            .flatten()
-            .collect()
+    fn dependencies_inner(dependencies: &mut Dependencies) {
+        dependencies.add::<T>();
+        dependencies.add::<E>();
     }
 
     fn transparent() -> bool {
@@ -498,6 +558,10 @@ impl<T: TS, E: TS> TS for Result<T, E> {
 }
 
 impl<T: TS> TS for Vec<T> {
+    fn id() -> Id {
+        4048293305
+    }
+
     fn name() -> String {
         "Array".to_owned()
     }
@@ -520,8 +584,8 @@ impl<T: TS> TS for Vec<T> {
         format!("Array<{}>", T::inline())
     }
 
-    fn dependencies() -> Vec<Dependency> {
-        [Dependency::from_ty::<T>()].into_iter().flatten().collect()
+    fn dependencies_inner(dependencies: &mut Dependencies) {
+        dependencies.add::<T>();
     }
 
     fn transparent() -> bool {
@@ -530,6 +594,10 @@ impl<T: TS> TS for Vec<T> {
 }
 
 impl<K: TS, V: TS> TS for HashMap<K, V> {
+    fn id() -> Id {
+        4048293306
+    }
+
     fn name() -> String {
         "Record".to_owned()
     }
@@ -556,11 +624,9 @@ impl<K: TS, V: TS> TS for HashMap<K, V> {
         format!("Record<{}, {}>", K::inline(), V::inline())
     }
 
-    fn dependencies() -> Vec<Dependency> {
-        [Dependency::from_ty::<K>(), Dependency::from_ty::<V>()]
-            .into_iter()
-            .flatten()
-            .collect()
+    fn dependencies_inner(dependencies: &mut Dependencies) {
+        dependencies.add::<K>();
+        dependencies.add::<V>();
     }
 
     fn transparent() -> bool {
@@ -569,8 +635,16 @@ impl<K: TS, V: TS> TS for HashMap<K, V> {
 }
 
 impl<I: TS> TS for Range<I> {
+    fn id() -> Id {
+        4048293307
+    }
+
+    fn decl() -> Option<String> {
+        Some("type Range<T> = { start: T, end: T, };".into())
+    }
+
     fn name() -> String {
-        panic!("called Range::name - Did you use a type alias?")
+        "Range".into()
     }
 
     fn generics() -> Option<String> {
@@ -587,8 +661,8 @@ impl<I: TS> TS for Range<I> {
         format!("{{ start: {}, end: {}, }}", &args[0], &args[0])
     }
 
-    fn dependencies() -> Vec<Dependency> {
-        [Dependency::from_ty::<I>()].into_iter().flatten().collect()
+    fn dependencies_inner(dependencies: &mut Dependencies) {
+        dependencies.add::<I>();
     }
 
     fn transparent() -> bool {
@@ -597,8 +671,16 @@ impl<I: TS> TS for Range<I> {
 }
 
 impl<I: TS> TS for RangeInclusive<I> {
+    fn id() -> Id {
+        4048293308
+    }
+
+    fn decl() -> Option<String> {
+        Some("type RangeInclusive<T> = { start: T, end: T, };".into())
+    }
+
     fn name() -> String {
-        panic!("called RangeInclusive::name - Did you use a type alias?")
+        "RangeInclusive".into()
     }
 
     fn generics() -> Option<String> {
@@ -615,8 +697,8 @@ impl<I: TS> TS for RangeInclusive<I> {
         format!("{{ start: {}, end: {}, }}", &args[0], &args[0])
     }
 
-    fn dependencies() -> Vec<Dependency> {
-        [Dependency::from_ty::<I>()].into_iter().flatten().collect()
+    fn dependencies_inner(dependencies: &mut Dependencies) {
+        dependencies.add::<I>();
     }
 
     fn transparent() -> bool {

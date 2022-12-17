@@ -76,8 +76,10 @@ fn output_path<T: TS + ?Sized>() -> Result<PathBuf, ExportError> {
 
 /// Push the declaration of `T`
 fn generate_decl<T: TS + ?Sized>(out: &mut String) {
-    out.push_str("export ");
-    out.push_str(&T::decl());
+    if let Some(decl) = T::decl() {
+        out.push_str("export ");
+        out.push_str(&decl);
+    }
 }
 
 /// Push an import statement for all dependencies of `T`
@@ -86,19 +88,17 @@ fn generate_imports<T: TS + ?Sized>(out: &mut String) -> Result<(), ExportError>
 
     let deps = T::dependencies();
     let deduplicated_deps = deps
+        .0
         .iter()
-        .filter(|dep| dep.type_id != TypeId::of::<T>())
-        .map(|dep| (&dep.ts_name, dep))
+        .filter(|(_, dep)| dep.id != T::id())
+        .map(|(_, dep)| (&dep.ts_name, dep))
         .collect::<BTreeMap<_, _>>();
 
     for (_, dep) in deduplicated_deps {
-        let rel_path = import_path(path, Path::new(dep.exported_to));
-        writeln!(
-            out,
-            "import type {{ {} }} from {:?};",
-            &dep.ts_name, rel_path
-        )
-        .unwrap();
+        if let Some(exported_to) = dep.exported_to {
+            let rel_path = import_path(path, Path::new(exported_to));
+            writeln!(out, "import {{ {} }} from {:?};", &dep.ts_name, rel_path).unwrap();
+        }
     }
     writeln!(out).unwrap();
     Ok(())

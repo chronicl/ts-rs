@@ -1,3 +1,5 @@
+use std::{any::TypeId, collections::HashMap};
+
 use chrono::{
     Date, DateTime, Duration, FixedOffset, Local, NaiveDate, NaiveDateTime, NaiveTime, TimeZone,
     Utc,
@@ -11,7 +13,6 @@ macro_rules! impl_dummy {
         impl TS for $t {
             fn name() -> String { String::new() }
             fn inline() -> String { String::new() }
-            fn dependencies() -> Vec<Dependency> { vec![] }
             fn transparent() -> bool { false }
         }
     )*};
@@ -20,7 +21,7 @@ macro_rules! impl_dummy {
 impl_primitives!(NaiveDateTime, NaiveDate, NaiveTime, Duration => "string");
 impl_dummy!(Utc, Local, FixedOffset);
 
-impl<T: TimeZone + 'static> TS for DateTime<T> {
+impl<T: TimeZone + 'static + TS> TS for DateTime<T> {
     fn name() -> String {
         "string".to_owned()
     }
@@ -29,9 +30,6 @@ impl<T: TimeZone + 'static> TS for DateTime<T> {
     }
     fn inline() -> String {
         "string".to_owned()
-    }
-    fn dependencies() -> Vec<Dependency> {
-        vec![]
     }
     fn transparent() -> bool {
         false
@@ -47,9 +45,6 @@ impl<T: TimeZone + 'static> TS for Date<T> {
     }
     fn inline() -> String {
         "string".to_owned()
-    }
-    fn dependencies() -> Vec<Dependency> {
-        vec![]
     }
     fn transparent() -> bool {
         false

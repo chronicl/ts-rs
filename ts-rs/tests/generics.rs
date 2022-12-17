@@ -58,27 +58,27 @@ declare! {
 #[test]
 fn test() {
     assert_eq!(
-        TypeGroup::decl(),
+        TypeGroup::decl().unwrap(),
         "interface TypeGroup { foo: Array<Container>, }",
     );
 
     assert_eq!(
-        Generic::<()>::decl(),
+        Generic::<()>::decl().unwrap(),
         "interface Generic<T> { value: T, values: Array<T>, }"
     );
 
     assert_eq!(
-        GenericAutoBound::<()>::decl(),
+        GenericAutoBound::<()>::decl().unwrap(),
         "interface GenericAutoBound<T> { value: T, values: Array<T>, }"
     );
 
     assert_eq!(
-        GenericAutoBound2::<()>::decl(),
+        GenericAutoBound2::<()>::decl().unwrap(),
         "interface GenericAutoBound2<T> { value: T, values: Array<T>, }"
     );
 
     assert_eq!(
-        Container::decl(),
+        Container::decl().unwrap(),
         "interface Container { foo: Generic<number>, bar: Array<Generic<number>>, baz: Record<string, Generic<string>>, }"
     );
 }
@@ -98,7 +98,7 @@ fn generic_enum() {
     }
 
     assert_eq!(
-        Generic::<(), (), ()>::decl(),
+        Generic::<(), (), ()>::decl().unwrap(),
         r#"type Generic<A, B, C> = { A: A } | { B: [B, B, B] } | { C: Array<C> } | { D: Array<Array<Array<A>>> } | { E: { a: A, b: B, c: C, } } | { X: Array<number> } | { Y: number } | { Z: Array<Array<number>> };"#
     )
 }
@@ -109,7 +109,7 @@ fn generic_newtype() {
     struct NewType<T>(Vec<Vec<T>>);
 
     assert_eq!(
-        NewType::<()>::decl(),
+        NewType::<()>::decl().unwrap(),
         r#"type NewType<T> = Array<Array<T>>;"#
     );
 }
@@ -120,7 +120,7 @@ fn generic_tuple() {
     struct Tuple<T>(T, Vec<T>, Vec<Vec<T>>);
 
     assert_eq!(
-        Tuple::<()>::decl(),
+        Tuple::<()>::decl().unwrap(),
         r#"type Tuple<T> = [T, Array<T>, Array<Array<T>>];"#
     );
 }
@@ -140,7 +140,7 @@ fn generic_struct() {
     }
 
     assert_eq!(
-        Struct::<()>::decl(),
+        Struct::<()>::decl().unwrap(),
         "interface Struct<T> { a: T, b: [T, T], c: [T, [T, T]], d: Array<T>, e: Array<[T, T]>, f: Array<T>, g: Array<Array<T>>, h: Array<Array<[T, T]>>, }"
     )
 }
@@ -163,9 +163,12 @@ fn inline() {
         t: Generic<String>,
     }
 
-    assert_eq!(Generic::<()>::decl(), "interface Generic<T> { t: T, }");
     assert_eq!(
-        Container::decl(),
+        Generic::<()>::decl().unwrap(),
+        "interface Generic<T> { t: T, }"
+    );
+    assert_eq!(
+        Container::decl().unwrap(),
         "interface Container { g: Generic<string>, gi: { t: string }, t: string, }"
     );
 }
@@ -176,17 +179,22 @@ fn default() {
     struct A<T = String> {
         t: T,
     }
-    assert_eq!(A::<()>::decl(), "interface A<T = string> { t: T, }");
+    assert_eq!(
+        A::<()>::decl().unwrap(),
+        "interface A<T = string> { t: T, }"
+    );
 
     #[derive(TS)]
     struct B<U = Option<A<i32>>> {
         u: U,
     }
     assert_eq!(
-        B::<()>::decl(),
-        "interface B<U = A<number> | null> { u: U, }"
+        B::<()>::decl().unwrap(),
+        "interface B<U = Option<A<number>>> { u: U, }"
     );
-    assert!(B::<()>::dependencies().iter().any(|dep| dep.ts_name == "A"));
+    assert!(B::<()>::dependencies()
+        .values()
+        .any(|dep| dep.ts_name == "A"));
 
     #[derive(TS)]
     struct Y {
@@ -199,7 +207,7 @@ fn default() {
         // #[ts(inline)]
         // xi2: X<i32>
     }
-    assert_eq!(Y::decl(), "interface Y { a1: A, a2: A<number>, }")
+    assert_eq!(Y::decl().unwrap(), "interface Y { a1: A, a2: A<number>, }")
 }
 
 #[test]
@@ -208,12 +216,15 @@ fn name_with_generics() {
     struct A<T: ToString = i32> {
         t: T,
     }
-    assert_eq!(A::<i32>::inline(), "A<number>");
+    assert_eq!(A::<i32>::name_with_generics(), "A<number>");
 
     #[derive(TS)]
     struct B<T, U>(T, U);
-    assert_eq!(B::<A, String>::inline(), "B<A<number>, string>");
+    assert_eq!(B::<A, String>::name_with_generics(), "B<A<number>, string>");
 }
+
+#[test]
+fn test_dependencies_generics() {}
 
 #[test]
 fn trait_bounds() {
@@ -221,11 +232,14 @@ fn trait_bounds() {
     struct A<T: ToString = i32> {
         t: T,
     }
-    assert_eq!(A::<i32>::decl(), "interface A<T = number> { t: T, }");
+    assert_eq!(
+        A::<i32>::decl().unwrap(),
+        "interface A<T = number> { t: T, }"
+    );
 
     #[derive(TS)]
     struct B<T: ToString + Debug + Clone + 'static>(T);
-    assert_eq!(B::<&'static str>::decl(), "type B<T> = T;");
+    assert_eq!(B::<&'static str>::decl().unwrap(), "type B<T> = T;");
 
     #[derive(TS)]
     enum C<T: Copy + Clone + PartialEq, K: Copy + PartialOrd = i32> {
@@ -235,7 +249,7 @@ fn trait_bounds() {
         D(T, K),
     }
     assert_eq!(
-        C::<&'static str, i32>::decl(),
+        C::<&'static str, i32>::decl().unwrap(),
         "type C<T, K = number> = { A: { t: T, } } | { B: T } | \"C\" | { D: [T, K] };"
     );
 
@@ -244,5 +258,8 @@ fn trait_bounds() {
         t: [T; N],
     }
 
-    assert_eq!(D::<&str, 41>::decl(), "interface D<T> { t: Array<T>, }")
+    assert_eq!(
+        D::<&str, 41>::decl().unwrap(),
+        "interface D<T> { t: Array<T>, }"
+    )
 }

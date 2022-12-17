@@ -15,13 +15,13 @@ fn test_empty() {
     #[derive(TS)]
     enum Empty {}
 
-    assert_eq!(Empty::decl(), "type Empty = never;")
+    assert_eq!(Empty::decl().unwrap(), "type Empty = never;")
 }
 
 #[test]
 fn test_simple_enum() {
     assert_eq!(
-        SimpleEnum::decl(),
+        SimpleEnum::decl().unwrap(),
         r#"type SimpleEnum = "asdf" | "B" | "C";"#
     )
 }

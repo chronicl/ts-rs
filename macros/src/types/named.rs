@@ -89,13 +89,14 @@ fn format_field(
         }
 
         formatted_fields.push(quote!(<#ty as ts_rs::TS>::inline_flattened()));
-        dependencies.append_from(ty);
+        // maybe always apply idk
+        dependencies.add_type(ty);
         return Ok(());
     }
 
     let formatted_ty = type_override.map(|t| quote!(#t)).unwrap_or_else(|| {
         if inline {
-            dependencies.append_from(ty);
+            dependencies.add_type(ty);
             quote!(<#ty as ts_rs::TS>::inline())
         } else {
             format_type(ty, dependencies, generics)

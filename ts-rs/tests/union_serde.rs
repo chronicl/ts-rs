@@ -32,16 +32,16 @@ enum Untagged {
 #[test]
 fn test_serde_enum() {
     assert_eq!(
-        SimpleEnum::decl(),
+        SimpleEnum::decl().unwrap(),
         r#"type SimpleEnum = { kind: "A" } | { kind: "B" };"#
     );
     assert_eq!(
-        ComplexEnum::decl(),
+        ComplexEnum::decl().unwrap(),
         r#"type ComplexEnum = { kind: "A" } | { kind: "B", data: { foo: string, bar: number, } } | { kind: "W", data: SimpleEnum } | { kind: "F", data: { nested: SimpleEnum, } } | { kind: "T", data: [number, SimpleEnum] };"#
     );
 
     assert_eq!(
-        Untagged::decl(),
+        Untagged::decl().unwrap(),
         r#"type Untagged = string | number | null;"#
     )
 }

@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 use serde::Serialize;
-use ts_rs::{Dependency, TS};
+use ts_rs::{Dependencies, Dependency, TS};
 
 #[derive(TS, Serialize)]
 struct Bar {
@@ -24,20 +24,21 @@ enum SimpleEnum {
 
 #[test]
 fn test_stateful_enum() {
-    assert_eq!(Bar::decl(), r#"interface Bar { field: number, }"#);
-    assert_eq!(Bar::dependencies(), vec![]);
+    assert_eq!(Bar::decl().unwrap(), r#"interface Bar { field: number, }"#);
+    assert_eq!(Bar::dependencies(), Dependencies::new());
 
-    assert_eq!(Foo::decl(), r#"interface Foo { bar: Bar, }"#);
-    assert_eq!(
-        Foo::dependencies(),
-        vec![Dependency::from_ty::<Bar>().unwrap()]
-    );
+    assert_eq!(Foo::decl().unwrap(), r#"interface Foo { bar: Bar, }"#);
+    assert_eq!(Foo::dependencies(), {
+        let mut deps = Dependencies::new();
+        deps.add::<Bar>();
+        deps
+    });
 
     assert_eq!(
-        SimpleEnum::decl(),
+        SimpleEnum::decl().unwrap(),
         r#"type SimpleEnum = { A: string } | { B: number } | "C" | { D: [string, number] } | { E: Foo } | { F: { a: number, b: string, } };"#
     );
-    assert!(SimpleEnum::dependencies()
-        .into_iter()
-        .all(|dep| dep == Dependency::from_ty::<Foo>().unwrap()),);
+    let mut deps = Dependencies::new();
+    deps.add::<Foo>();
+    assert_eq!(SimpleEnum::dependencies(), deps);
 }

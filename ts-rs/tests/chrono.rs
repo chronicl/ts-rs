@@ -22,7 +22,7 @@ fn chrono() {
     }
 
     assert_eq!(
-        Chrono::decl(),
+        Chrono::decl().unwrap(),
         "interface Chrono { date: [string, string, string, string], time: string, date_time: [string, string, string, string], duration: string, }"
     )
 }

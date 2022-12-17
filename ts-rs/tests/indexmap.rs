@@ -13,7 +13,7 @@ fn indexmap() {
     }
 
     assert_eq!(
-        Indexes::decl(),
+        Indexes::decl().unwrap(),
         "interface Indexes { map: Record<string, string>, set: Array<string>, }"
     )
 }

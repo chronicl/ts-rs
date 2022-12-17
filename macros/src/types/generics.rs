@@ -76,13 +76,13 @@ pub fn format_type(ty: &Type, dependencies: &mut Dependencies, generics: &Generi
             )
             .unwrap();
             // now, we return the inline definition
-            dependencies.append(tuple_struct.dependencies);
+            dependencies.extend(tuple_struct.dependencies);
             return tuple_struct.inline;
         }
         _ => (),
     };
 
-    dependencies.push_or_append_from(ty);
+    dependencies.add_type(ty);
     match extract_type_args(ty) {
         None => quote!(<#ty as ts_rs::TS>::name()),
         Some(type_args) => {

@@ -31,12 +31,12 @@ enum EnumWithInternalTag2 {
 #[cfg(feature = "serde-compat")]
 fn test_enums_with_internal_tags() {
     assert_eq!(
-        EnumWithInternalTag::decl(),
+        EnumWithInternalTag::decl().unwrap(),
         r#"type EnumWithInternalTag = { type: "A", foo: string, } | { type: "B", bar: number, };"#
     );
 
     assert_eq!(
-        EnumWithInternalTag2::decl(),
+        EnumWithInternalTag2::decl().unwrap(),
         r#"type EnumWithInternalTag2 = { type: "A" } & InnerA | { type: "B" } & InnerB;"#
     );
 }
