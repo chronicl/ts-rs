@@ -240,6 +240,10 @@ mod poem;
 pub trait TS: 'static {
     const EXPORT_TO: Option<&'static str> = None;
 
+    /// Identifier of this type, independent of it's generics.
+    /// Similar to `TypeId`, however, for example Option<u32> and Option<u64>
+    /// have a different `TypeId`, but the same `Id`.
+    /// If `Self::decl() == None`, this function may return `0`.
     fn id() -> Id {
         0
     }
