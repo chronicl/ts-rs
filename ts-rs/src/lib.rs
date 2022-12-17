@@ -343,8 +343,8 @@ impl Dependencies {
         if let Entry::Vacant(e) = self.0.entry(T::id()) {
             if let Some(dep) = Dependency::from_ty::<T>() {
                 e.insert(dep);
-                T::dependencies_inner(self);
             }
+            T::dependencies_inner(self);
         }
     }
 
