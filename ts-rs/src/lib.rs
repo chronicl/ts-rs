@@ -451,7 +451,7 @@ macro_rules! impl_wrapper {
             fn inline() -> String { T::inline() }
             fn inline_flattened() -> String { T::inline_flattened() }
             fn dependencies_inner(dependencies: &mut $crate::Dependencies) {
-                dependencies.add::<T>();
+                T::dependencies_inner(dependencies)
             }
             fn transparent() -> bool { T::transparent() }
         }
@@ -470,7 +470,7 @@ macro_rules! impl_shadow {
             fn inline() -> String { <$s>::inline() }
             fn inline_flattened() -> String { <$s>::inline_flattened() }
             fn dependencies_inner(dependencies: &mut $crate::Dependencies) {
-                dependencies.add::<$s>();
+                <$s>::dependencies_inner(dependencies)
             }
             fn transparent() -> bool { <$s>::transparent() }
         }
