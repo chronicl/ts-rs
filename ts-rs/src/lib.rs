@@ -441,6 +441,7 @@ macro_rules! impl_wrapper {
     ($($t:tt)*) => {
         $($t)* {
             fn id() -> $crate::Id { T::id() }
+            fn decl() -> Option<String> { T::decl() }
             fn name() -> String { T::name() }
             fn name_with_generics() -> String { T::name_with_generics() }
             fn name_with_type_args(mut args: Vec<String>) -> String {
