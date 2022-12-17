@@ -528,7 +528,7 @@ impl<T: TS, E: TS> TS for Result<T, E> {
 
     fn decl() -> Option<String> {
         Some(
-            r#"type Result<T, E> = { type: "Ok", content: T} | { type: "Err", content: E };"#
+            r#"type Result<T, E> = { type: "Ok", content: T } | { type: "Err", content: E };"#
                 .into(),
         )
     }
