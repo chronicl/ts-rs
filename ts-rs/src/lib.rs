@@ -526,6 +526,13 @@ impl<T: TS, E: TS> TS for Result<T, E> {
         4048293304
     }
 
+    fn decl() -> Option<String> {
+        Some(
+            r#"type Result<T, E> = { type: "Ok", content: T} | { type: "Err", content: E };"#
+                .into(),
+        )
+    }
+
     fn name() -> String {
         "Result".to_owned()
     }
