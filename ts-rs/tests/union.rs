@@ -22,6 +22,6 @@ fn test_empty() {
 fn test_simple_enum() {
     assert_eq!(
         SimpleEnum::decl().unwrap(),
-        r#"type SimpleEnum = "asdf" | "B" | "C";"#
+        r#"enum SimpleEnum { A = "asdf", B = "B", C = "C" }"#
     )
 }

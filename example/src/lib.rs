@@ -67,7 +67,6 @@ struct Series {
 }
 
 #[derive(Serialize, TS)]
-#[serde(tag = "kind", content = "d")]
 #[ts(export)]
 enum SimpleEnum {
     A,

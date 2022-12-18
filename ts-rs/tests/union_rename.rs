@@ -15,7 +15,7 @@ enum RenamedEnum {
 #[test]
 fn test_simple_enum() {
     assert_eq!(
-        RenamedEnum::decl(),
-        Some(r#"type SimpleEnum = "ASDF" | "b" | "c";"#.into())
+        RenamedEnum::decl().unwrap(),
+        r#"enum SimpleEnum { A = "ASDF", B = "b", C = "c" }"#
     )
 }

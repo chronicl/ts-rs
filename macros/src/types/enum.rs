@@ -22,7 +22,7 @@ pub(crate) fn r#enum_def(s: &ItemEnum) -> syn::Result<DerivedTS> {
         return Ok(empty_enum(name, enum_attr));
     }
 
-    let is_enum = match enum_attr.r#type.as_deref() {
+    let mut is_enum = match enum_attr.r#type.as_deref() {
         Some("enum" | "const enum") => true,
         None | Some("type") => false,
         Some(x) => {
@@ -32,6 +32,13 @@ pub(crate) fn r#enum_def(s: &ItemEnum) -> syn::Result<DerivedTS> {
             );
         }
     };
+    if s.variants.iter().all(|v| matches!(v.fields, Fields::Unit))
+        && !enum_attr.untagged
+        && enum_attr.tag.is_none()
+        && enum_attr.content.is_none()
+    {
+        is_enum = true;
+    }
 
     let mut formatted_variants = vec![];
     let mut dependencies = Dependencies::default();
@@ -57,7 +64,13 @@ pub(crate) fn r#enum_def(s: &ItemEnum) -> syn::Result<DerivedTS> {
         quote!([#(#formatted_variants),*].join(" | "))
     };
 
-    let overwrite_type = enum_attr.r#type.unwrap_or(String::from("type"));
+    let overwrite_type = if let Some(s) = enum_attr.r#type {
+        s
+    } else if is_enum {
+        "enum".to_string()
+    } else {
+        "type".to_string()
+    };
 
     let generic_args = format_generics(&mut dependencies, &s.generics);
 
@@ -190,7 +203,7 @@ fn format_enum_variant(
     ] {
         if forbidden_attr_val.is_some() {
             syn_err!(
-                "Invalid enum attribute {:?} when type is enum.",
+                "Invalid enum attribute {:?} when #[ts(type = \"enum\")].",
                 forbidden_attr_name
             )
         }

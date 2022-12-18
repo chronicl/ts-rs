@@ -99,7 +99,6 @@ fn simple_enum_inflection() {
 }
 
 #[derive(TS, Deserialize)]
-// #[ts(type="type")]
 enum SimpleEnumNotChanged {
     #[serde(rename = "a")]
     A,
@@ -110,6 +109,6 @@ enum SimpleEnumNotChanged {
 fn simple_enum_not_changed() {
     assert_eq!(
         SimpleEnumNotChanged::decl().unwrap(),
-        r#"type SimpleEnumNotChanged = "a" | "B";"#
+        r#"enum SimpleEnumNotChanged { A = "a", B = "B" }"#
     );
 }
