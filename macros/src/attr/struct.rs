@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 
-use syn::{Attribute, Ident, Result};
+use syn::{Attribute, Result};
 
 use crate::{
     attr::{parse_assign_str, Inflection, VariantAttr},

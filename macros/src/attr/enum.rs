@@ -1,9 +1,7 @@
-use syn::{Attribute, Ident, Result};
+use syn::{Attribute, Result};
 
-use crate::{
-    attr::{parse_assign_inflection, parse_assign_str, Inflection},
-    utils::parse_attrs,
-};
+use super::{parse_assign_inflection, parse_assign_str};
+use crate::{attr::Inflection, utils::parse_attrs};
 
 #[derive(Default)]
 pub struct EnumAttr {
@@ -11,9 +9,10 @@ pub struct EnumAttr {
     pub rename: Option<String>,
     pub export_to: Option<String>,
     pub export: bool,
-    tag: Option<String>,
-    untagged: bool,
-    content: Option<String>,
+    pub tag: Option<String>,
+    pub untagged: bool,
+    pub content: Option<String>,
+    pub r#type: Option<String>,
 }
 
 #[cfg(feature = "serde-compat")]
@@ -59,8 +58,10 @@ impl EnumAttr {
             untagged,
             export_to,
             export,
+            r#type,
         }: EnumAttr,
     ) {
+        self.r#type = self.r#type.take().or(r#type);
         self.rename = self.rename.take().or(rename);
         self.rename_all = self.rename_all.take().or(rename_all);
         self.tag = self.tag.take().or(tag);
@@ -76,7 +77,8 @@ impl_parse! {
         "rename" => out.rename = Some(parse_assign_str(input)?),
         "rename_all" => out.rename_all = Some(parse_assign_inflection(input)?),
         "export_to" => out.export_to = Some(parse_assign_str(input)?),
-        "export" => out.export = true
+        "export" => out.export = true,
+        "type" => out.r#type = Some(parse_assign_str(input)?)
     }
 }
 
@@ -87,6 +89,7 @@ impl_parse! {
         "rename_all" => out.0.rename_all = Some(parse_assign_inflection(input)?),
         "tag" => out.0.tag = Some(parse_assign_str(input)?),
         "content" => out.0.content = Some(parse_assign_str(input)?),
-        "untagged" => out.0.untagged = true
+        "untagged" => out.0.untagged = true,
+        "type" => out.0.r#type = Some(parse_assign_str(input)?)
     }
 }
