@@ -28,7 +28,10 @@ enum SimpleEnum {
 
 #[test]
 fn simple_enum() {
-    assert_eq!(SimpleEnum::decl().unwrap(), r#"enum SimpleEnum { A, B }"#);
+    assert_eq!(
+        SimpleEnum::decl().unwrap(),
+        r#"enum SimpleEnum { A = "A", B = "B" }"#
+    );
 }
 
 #[derive(TS, Deserialize)]
@@ -58,7 +61,7 @@ enum SimpleEnumWithNumberAssigned {
 fn simple_enum_discriminant() {
     assert_eq!(
         SimpleEnumWithNumberAssigned::decl().unwrap(),
-        r#"enum SimpleEnumWithNumberAssigned { A = 1, B }"#
+        r#"enum SimpleEnumWithNumberAssigned { A = 1, B = "B" }"#
     )
 }
 

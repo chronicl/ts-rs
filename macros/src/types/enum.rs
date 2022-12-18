@@ -3,7 +3,7 @@ use quote::{format_ident, quote, ToTokens};
 use syn::{Fields, Generics, ItemEnum, Variant};
 
 use crate::{
-    attr::{EnumAttr, FieldAttr, StructAttr, Tagged, VariantAttr},
+    attr::{EnumAttr, StructAttr, Tagged, VariantAttr},
     deps::Dependencies,
     types,
     types::generics::{format_generics, format_type},
@@ -36,14 +36,8 @@ pub(crate) fn r#enum_def(s: &ItemEnum) -> syn::Result<DerivedTS> {
     let mut formatted_variants = vec![];
     let mut dependencies = Dependencies::default();
     if is_enum {
-        let any_renamed = enum_attr.rename_all.is_some()
-            || s.variants.iter().any(|v| {
-                let FieldAttr { rename, .. } = FieldAttr::from_attrs(&v.attrs).unwrap();
-                rename.is_some()
-            });
-
         for variant in &s.variants {
-            format_enum_variant(&mut formatted_variants, &enum_attr, variant, any_renamed)?;
+            format_enum_variant(&mut formatted_variants, &enum_attr, variant)?;
         }
     } else {
         for variant in &s.variants {
@@ -173,27 +167,20 @@ fn format_enum_variant(
     formatted_variants: &mut Vec<TokenStream>,
     enum_attr: &EnumAttr,
     variant: &Variant,
-    any_renamed: bool,
 ) -> syn::Result<()> {
-    let VariantAttr {
-        rename,
-        inline,
-        skip,
-        ..
-    } = VariantAttr::from_attrs(&variant.attrs)?;
+    let variant_attr = VariantAttr::from_attrs(&variant.attrs)?;
 
-    match (skip, inline) {
+    match (variant_attr.skip, variant_attr.inline) {
         (true, ..) => return Ok(()),
         (_, true) => syn_err!("`inline` is not applicable to enum variants when type enum"),
         _ => {}
     };
 
     let name = variant.ident.to_string();
-    let renamed = match (rename, enum_attr.rename_all, any_renamed) {
-        (Some(rn), _, _) => Some(rn),
-        (_, Some(rn), _) => Some(rn.apply(&variant.ident.to_string())),
-        (_, _, true) => Some(name.to_owned()),
-        (_, _, false) => None,
+    let renamed = match (&variant_attr.rename, &enum_attr.rename_all) {
+        (Some(rn), _) => rn.to_owned(),
+        (_, Some(rn)) => rn.apply(&name),
+        _ => name.to_owned(),
     };
 
     for (forbidden_attr_name, forbidden_attr_val) in [
@@ -209,23 +196,20 @@ fn format_enum_variant(
         }
     }
 
-    formatted_variants.push(if let Some((_, expr)) = &variant.discriminant {
-        let str = format!("{} = {}", name, expr.to_token_stream());
-        quote!(#str)
-    } else if let Some(renamed) = renamed {
-        if let Some((_, e)) = &variant.discriminant {
-            if !any_renamed {
-                syn_err!(
-                    "{:?} Can't be both renamed and have a discriminant {:?}",
-                    name,
-                    e.to_token_stream()
-                );
-            }
+    let variant = if let Some((_, expr)) = &variant.discriminant {
+        if variant_attr.rename.is_some() {
+            syn_err!(
+                "{:?} Can't be both renamed and have a discriminant {:?}",
+                name,
+                expr.to_token_stream()
+            );
         }
-        let str = format!("{name} = \"{renamed}\"");
-        quote!(#str)
+
+        format!("{} = {}", name, expr.to_token_stream())
     } else {
-        quote!(#name)
-    });
+        format!("{name} = \"{renamed}\"")
+    };
+    formatted_variants.push(quote!(#variant));
+
     Ok(())
 }
