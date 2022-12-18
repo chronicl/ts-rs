@@ -68,7 +68,7 @@ pub(crate) fn r#enum_def(s: &ItemEnum) -> syn::Result<DerivedTS> {
     let generic_args = format_generics(&mut dependencies, &s.generics);
 
     let decl = if is_enum {
-        quote!(format!("{} {} {{{}}}", #overwrite_type, #name, Self::inline()))
+        quote!(format!("{} {} {{ {} }}", #overwrite_type, #name, Self::inline()))
     } else {
         quote!(format!("{} {}{} = {};", #overwrite_type, #name, #generic_args, Self::inline()))
     };
@@ -210,7 +210,7 @@ fn format_enum_variant(
     }
 
     formatted_variants.push(if let Some((_, expr)) = &variant.discriminant {
-        let str = format!("{}={}", name, expr.to_token_stream());
+        let str = format!("{} = {}", name, expr.to_token_stream());
         quote!(#str)
     } else if let Some(renamed) = renamed {
         if let Some((_, e)) = &variant.discriminant {
@@ -222,7 +222,7 @@ fn format_enum_variant(
                 );
             }
         }
-        let str = format!("{name}=\"{renamed}\"");
+        let str = format!("{name} = \"{renamed}\"");
         quote!(#str)
     } else {
         quote!(#name)

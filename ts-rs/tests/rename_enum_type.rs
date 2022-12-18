@@ -15,7 +15,7 @@ enum SimpleConstEnum {
 fn const_enum() {
     assert_eq!(
         SimpleConstEnum::decl().unwrap(),
-        r#"const enum SimpleConstEnum {A="a", B="B"}"#
+        r#"const enum SimpleConstEnum { A = "a", B = "B" }"#
     );
 }
 
@@ -28,7 +28,7 @@ enum SimpleEnum {
 
 #[test]
 fn simple_enum() {
-    assert_eq!(SimpleEnum::decl().unwrap(), r#"enum SimpleEnum {A, B}"#);
+    assert_eq!(SimpleEnum::decl().unwrap(), r#"enum SimpleEnum { A, B }"#);
 }
 
 #[derive(TS, Deserialize)]
@@ -43,7 +43,7 @@ enum EnumWithBothNumberAndARename {
 fn enum_with_both_number_and_rename() {
     assert_eq!(
         EnumWithBothNumberAndARename::decl().unwrap(),
-        r#"enum EnumWithBothNumberAndARename {A=1, B="XD"}"#
+        r#"enum EnumWithBothNumberAndARename { A = 1, B = "XD" }"#
     );
 }
 
@@ -58,7 +58,7 @@ enum SimpleEnumWithNumberAssigned {
 fn simple_enum_discriminant() {
     assert_eq!(
         SimpleEnumWithNumberAssigned::decl().unwrap(),
-        r#"enum SimpleEnumWithNumberAssigned {A=1, B}"#
+        r#"enum SimpleEnumWithNumberAssigned { A = 1, B }"#
     )
 }
 
@@ -74,7 +74,7 @@ enum SimpleEnumWithRename {
 fn simple_enum_variant_rename() {
     assert_eq!(
         SimpleEnumWithRename::decl().unwrap(),
-        r#"enum SimpleEnumWithRename {A="a", B="B"}"#
+        r#"enum SimpleEnumWithRename { A = "a", B = "B" }"#
     );
 }
 
@@ -91,7 +91,7 @@ enum SimpleEnumWithInflection {
 fn simple_enum_inflection() {
     assert_eq!(
         SimpleEnumWithInflection::decl().unwrap(),
-        r#"enum SimpleEnumWithInflection {A="a", B="b"}"#
+        r#"enum SimpleEnumWithInflection { A = "a", B = "b" }"#
     );
 }
 
