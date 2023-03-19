@@ -333,7 +333,7 @@ pub trait TS: 'static {
 pub type Id = u64;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct Dependencies(HashMap<Id, Dependency>);
+pub struct Dependencies(pub HashMap<Id, Dependency>);
 
 impl Dependencies {
     pub fn new() -> Self {
