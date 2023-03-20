@@ -527,6 +527,14 @@ impl<T: TS, E: TS> TS for Result<T, E> {
     }
 
     fn decl() -> Option<String> {
+        #[cfg(feature = "tagged-result")]
+        {
+            Some(
+                r#"type Result<T, E> = { result: "Ok", value: T } | { result: "Err", value: E };"#
+                    .into(),
+            )
+        }
+        #[cfg(not(feature = "tagged-result"))]
         Some(r#"type Result<T, E> = { Ok: T } | { Err: E };"#.into())
     }
 
